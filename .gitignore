@@ -1,0 +1,35 @@
+# Ignore node_modules directory
+/node_modules
+
+# Ignore .env files
+/.env
+/dev.env
+/stag.env
+/prod.env
+
+# Ignore log files
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+
+# Ignore build output
+/build
+/dist
+/out
+
+# Ignore dependency lock files
+yarn.lock
+package-lock.json
+
+# Ignore environment configuration overrides
+.env.override
+
+# Ignore user-specific configuration files
+.npmrc
+.npmignore
