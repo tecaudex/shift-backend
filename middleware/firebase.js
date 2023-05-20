@@ -2,7 +2,7 @@ const admin = require("firebase-admin");
 const User = require("../models/users.model");
 
 // configure to get firebase
-const configureFirebase = require("./config/firebase-config");
+const configureFirebase = require("../config/firebase-config");
 
 const environment = process.env.NODE_ENV || "development";
 
