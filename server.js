@@ -117,7 +117,7 @@ const job = schedule.scheduleJob(rule, function () {
 
 const PORT = process.env.PORT;
 
-app.listen(PORT, function (err) {
+const ServerConnection = app.listen(PORT, function (err) {
   if (err) console.log("Error in server setup");
   console.log("Server listening on Port", PORT);
 });
