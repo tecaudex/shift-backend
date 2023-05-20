@@ -1,7 +1,0 @@
-{
-    "client_id": "com.mntra.app.auth.apple",
-    "team_id": "27QMNSGY58",
-    "key_id": "CH3L7WSR5F",
-    "redirect_uri": "https://mntra-backend-prod.us-east-1.elasticbeanstalk.com/auth/apple/callback",
-    "scope": "name email"
-}

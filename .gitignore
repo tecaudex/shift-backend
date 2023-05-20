@@ -9,6 +9,7 @@
 
 # Ignore log files
 *.log
+/middleware/logs
 
 # Ignore OS-specific files
 .DS_Store
@@ -33,3 +34,11 @@ package-lock.json
 # Ignore user-specific configuration files
 .npmrc
 .npmignore
+
+# Ignore local upload files
+/upload
+
+# Ignore firebase service keys
+/config/prod-firebase.json
+/config/stag-firebase.json
+/config/dev-firebase.json

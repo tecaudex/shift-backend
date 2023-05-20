@@ -1,12 +1,13 @@
 const admin = require("firebase-admin");
 const User = require("../models/users.model");
 
-const serviceAccount = require("../config/firebaseServiceAccountKey.json");
+// configure to get firebase
+const configureFirebase = require("./config/firebase-config");
 
-// Initialize the Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+const environment = process.env.NODE_ENV || "development";
+
+// Load environment-specific configuration
+configureFirebase(environment);
 
 // Middleware to extract and verify the Firebase auth ID token
 exports.authenticateFirebaseUser = async (req, res, next) => {
