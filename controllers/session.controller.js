@@ -2,6 +2,8 @@ const Session = require("../models/session.model");
 const Gratitude = require("../models/gratitude.model");
 const crypto = require("crypto");
 const { updateStreak } = require("./streak.controller");
+const OpenAIServices = require("../services/openai.services");
+const MessageHelper = require("../helper/messages.helper");
 
 const algorithm = "aes-256-cbc";
 const key = process.env.GRATITUDE_ENCRYPTION_KEY;
@@ -53,7 +55,6 @@ exports.checkChatSession = async (userId, socket) => {
       const messages = await MessageHelper.getAllMessages(sessionStatus._id);
       socket.emit("checkChatSession/Response", {
         sessionId: sessionStatus._id,
-        points: sessionStatus.points,
         messages,
       });
     } else {
@@ -69,7 +70,6 @@ async function createChatSession(userId, socket) {
       user: userId,
       isSessionOpen: true,
     });
-    // console.log("session", session);
 
     socket.emit("checkChatSession/Response", {
       sessionId: session._id,

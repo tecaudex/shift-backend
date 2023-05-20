@@ -9,7 +9,7 @@ exports.saveThisMessage = async (sessionId, role, content) => {
 exports.getAllMessages = async (sessionId) => {
   try {
     const messages = await Message.find({ sessionId }, { sessionId: 0 });
-    return messages.length > 0 ? messages : "NoMessageFound";
+    return messages.length > 0 ? messages : [];
   } catch (err) {
     console.log("Error while getting all messages from DB", err);
   }

@@ -133,7 +133,7 @@ const io = require("socket.io")(ServerConnection, {
 
 //Connecting and Using socket.io
 io.on("connection", (socket) => {
-  console.log(`Connected to socket.io`.yellow.bold);
+  console.log(`Connected to socket.io`.yellow);
   // ============ For Checking Chat Session ============
   socket.on("checkChatSession", (userId) => {
     console.log(`checkChatSession | userId: ${userId}`.yellow);
