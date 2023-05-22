@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { updateStreak } = require("./streak.controller");
 const OpenAIServices = require("../services/openai.services");
 const MessageHelper = require("../helper/messages.helper");
+const User = require("../controllers/users.controller");
 
 const algorithm = "aes-256-cbc";
 const key = process.env.GRATITUDE_ENCRYPTION_KEY;

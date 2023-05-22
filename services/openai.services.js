@@ -113,13 +113,16 @@ async function processStreamData(sessionId, socket, isUserMessage, stream) {
 
 // ======= Extract gratitude points from AI response and send to user =======
 async function extractPointsFromMessage(sessionId, socket, message) {
-  let points = message.replace(/^\D+/g, "")[0];
+  // console.log("message", message);
+  // let points = message.replace(/^\D+/g, "")[0];
+  let points = parseInt(message.match(/\d+/));
+  // console.log("points", points);
   points = !points ? 0 : Number(points);
 
-  const isListNumber = message.includes(points + ".");
-  points = isListNumber ? 0 : points;
+  // const isListNumber = message.includes(points + ".");
+  // points = isListNumber ? 0 : points;
 
-  // console.log("points:", points);
+  // console.log("points===:", points);
   socket.emit("points", points);
   await SessionController.saveGratitudePoints(sessionId, points);
 }

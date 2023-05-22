@@ -21,6 +21,7 @@ const sessionSchema = new Schema(
     feeling: {
       type: String,
     },
+    isSessionOpen: Boolean,
   },
   {
     timestamps: true,
