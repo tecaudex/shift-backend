@@ -5,7 +5,7 @@ const AdminJSExpress = require("@adminjs/express");
 const AdminJSMongoose = require("@adminjs/mongoose");
 const schedule = require("node-schedule");
 const { deleteEmptySessions } = require("./delete-empty-sessions");
-
+const color = require("colors");
 // configure to get env
 const configureEnvironment = require("./config/config");
 
@@ -60,7 +60,8 @@ const sessionRoutes = require("./routes/session.router");
 // const openaiRoutes = require("./routes/openai.router");
 const { sendUserMessageToOpenAI } = require("./services/openai.services");
 const {
-  checkChatSession,
+  createChatSession,
+  sendSystemMessage,
   closeChatSession,
 } = require("./controllers/session.controller");
 
@@ -134,20 +135,19 @@ const io = require("socket.io")(ServerConnection, {
 //Connecting and Using socket.io
 io.on("connection", (socket) => {
   console.log(`Connected to socket.io`.yellow);
-  // ============ For Checking Chat Session ============
-  socket.on("checkChatSession", (userId) => {
-    console.log(`checkChatSession | userId: ${userId}`.yellow);
-    checkChatSession(userId, socket);
-  });
-  // ============ For Closing Chat Session ============
-  socket.on("closeChatSession", (sessionId) => {
-    console.log(`closeChatSession | sessionId: ${sessionId}`.yellow);
-    closeChatSession(sessionId, socket);
+
+  socket.on("createChatSession", (userId) => {
+    console.log(`createChatSession | userId: ${userId}`.yellow);
+    createChatSession(socket, userId);
   });
 
-  // ============ For New User Message ============
-  socket.on("newUserMessage", (body) => {
-    console.log(`newUserMessage | body: ${JSON.stringify(body)}`.yellow);
+  socket.on("sendSystemMessage", (sessionId) => {
+    console.log(`sendSystemMessage | sessionId: ${sessionId}`.yellow);
+    sendSystemMessage(socket, sessionId);
+  });
+
+  socket.on("userMessage", (body) => {
+    console.log(`userMessage | body: ${JSON.stringify(body)}`.yellow);
     let { sessionId, content } = body;
     sendUserMessageToOpenAI(sessionId, content, socket);
   });
