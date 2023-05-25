@@ -98,11 +98,11 @@ async function processStreamData(sessionId, socket, isUserMessage, stream) {
       if (!finished && content) {
         // console.log("Content:", content);
         fullMessage += content;
-        socket.emit("stream", content);
+        socket.emit("messageStream", content);
       } else {
         // console.log("Finished - Full Message:", fullMessage);
         MessageHelper.saveThisMessage(sessionId, "assistant", fullMessage);
-        socket.emit("streamEnd", "streamEnd");
+        socket.emit("messageStreamEnd", "streamEnd");
         if (isUserMessage) {
           extractPointsFromMessage(sessionId, socket, fullMessage);
         }

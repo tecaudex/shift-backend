@@ -40,52 +40,51 @@ async function closeChatSessionErrorHandler(socket, err) {
   });
 }
 
-//=================== Using socket.io without using API's ===================
-exports.checkChatSession = async (userId, socket) => {
+exports.createChatSession = async (socket, userId) => {
   try {
-    // Check chat session User Id
-    const sessionStatus = await Session.findOne({
-      user: userId,
-      isSessionOpen: true,
-    })
-      .sort({ $natural: -1 })
-      .limit(1);
-
-    // console.log("sessionStatus", sessionStatus);
-    if (sessionStatus) {
-      const messages = await MessageHelper.getAllMessages(sessionStatus._id);
-      socket.emit("checkChatSession/Response", {
-        sessionId: sessionStatus._id,
-        messages,
-      });
-    } else {
-      return createChatSession(userId, socket);
-    }
-  } catch (err) {
-    checkChatSessionErrorHandler(socket, err);
-  }
-};
-async function createChatSession(userId, socket) {
-  try {
+    // create a session with the user id
     const session = await Session.create({
       user: userId,
       isSessionOpen: true,
     });
 
-    socket.emit("checkChatSession/Response", {
-      sessionId: session._id,
-      points: session.points,
-    });
-
-    await OpenAIServices.sendSystemMessageToOpenAI(session._id, socket);
+    socket.emit("sessionId", session._id);
   } catch (err) {
-    console.log("Error while creating new chat session", err);
-    socket.emit("checkChatSession/Error", {
-      error: "Internal server error: " + err,
-      msg: "Error while creating new chat session",
-    });
+    checkChatSessionErrorHandler(socket, err);
   }
-}
+};
+
+exports.sendSystemMessage = async (socket, sessionId) => {
+  try {
+    // send the system message to openai
+    await OpenAIServices.sendSystemMessageToOpenAI(sessionId, socket);
+  } catch (err) {
+    checkChatSessionErrorHandler(socket, err);
+  }
+};
+
+// async function createChatSession(userId, socket) {
+//   try {
+//     const session = await Session.create({
+//       user: userId,
+//       isSessionOpen: true,
+//     });
+
+//     socket.emit("checkChatSession/Response", {
+//       sessionId: session._id,
+//       points: session.points,
+//     });
+
+//     await OpenAIServices.sendSystemMessageToOpenAI(session._id, socket);
+//   } catch (err) {
+//     console.log("Error while creating new chat session", err);
+//     socket.emit("checkChatSession/Error", {
+//       error: "Internal server error: " + err,
+//       msg: "Error while creating new chat session",
+//     });
+//   }
+// }
+
 exports.closeChatSession = async (sessionId, socket) => {
   // console.log("sessionId in closeChatSession", sessionId);
   try {
