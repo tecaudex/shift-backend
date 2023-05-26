@@ -54,10 +54,10 @@ exports.createChatSession = async (socket, userId) => {
   }
 };
 
-exports.sendSystemMessage = async (socket, sessionId) => {
+exports.sendSystemMessage = async (socket, sessionId, gameId) => {
   try {
     // send the system message to openai
-    await OpenAIServices.sendSystemMessageToOpenAI(sessionId, socket);
+    await OpenAIServices.sendSystemMessageToOpenAI(socket, sessionId, gameId);
   } catch (err) {
     checkChatSessionErrorHandler(socket, err);
   }
