@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
-const AdminJS = require("adminjs");
-const AdminJSExpress = require("@adminjs/express");
-const AdminJSMongoose = require("@adminjs/mongoose");
+// const AdminJS = require("adminjs");
+// const AdminJSExpress = require("@adminjs/express");
+// const AdminJSMongoose = require("@adminjs/mongoose");
 const schedule = require("node-schedule");
 const { deleteEmptySessions } = require("./delete-empty-sessions");
 const color = require("colors");
@@ -28,17 +28,17 @@ const Gratitude = require("./models/gratitude.model");
 const Session = require("./models/session.model");
 const Policy = require("./models/policy.model");
 
-AdminJS.registerAdapter({
-  Resource: AdminJSMongoose.Resource,
-  Database: AdminJSMongoose.Database,
-});
+// AdminJS.registerAdapter({
+//   Resource: AdminJSMongoose.Resource,
+//   Database: AdminJSMongoose.Database,
+// });
 
-const admin = new AdminJS({
-  resources: [User, Gratitude, Session, Policy],
-});
+// const admin = new AdminJS({
+//   resources: [User, Gratitude, Session, Policy],
+// });
 
-const adminRouter = AdminJSExpress.buildRouter(admin);
-app.use(admin.options.rootPath, adminRouter);
+// const adminRouter = AdminJSExpress.buildRouter(admin);
+// app.use(admin.options.rootPath, adminRouter);
 
 // importing middleware
 const bodyParserMiddleware = require("./middleware/body-parser");
@@ -57,6 +57,7 @@ const userRoutes = require("./routes/users.router");
 const gratitudeRoutes = require("./routes/gratitude.router");
 const intentionRoutes = require("./routes/intention.router");
 const sessionRoutes = require("./routes/session.router");
+const gamesRoutes = require("./routes/games.router");
 // const openaiRoutes = require("./routes/openai.router");
 const { sendUserMessageToOpenAI } = require("./services/openai.services");
 const {
@@ -88,6 +89,7 @@ app.use("/users", userRoutes);
 app.use("/gratitude", gratitudeRoutes);
 app.use("/intention", intentionRoutes);
 app.use("/session", sessionRoutes);
+app.use("/games", gamesRoutes);
 
 app.get("/", (req, res) => {
   return res.json({
@@ -141,9 +143,11 @@ io.on("connection", (socket) => {
     createChatSession(socket, userId);
   });
 
-  socket.on("sendSystemMessage", (sessionId) => {
-    console.log(`sendSystemMessage | sessionId: ${sessionId}`.yellow);
-    sendSystemMessage(socket, sessionId);
+  socket.on("sendSystemMessage", (body) => {
+    let { sessionId, gameId } = body;
+    let consoleData = `sendSystemMessage | sessionId: ${sessionId} | gameId: ${gameId}`;
+    console.log(`${consoleData}`.yellow);
+    sendSystemMessage(socket, sessionId, gameId);
   });
 
   socket.on("userMessage", (body) => {
