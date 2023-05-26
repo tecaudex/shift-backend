@@ -1,33 +1,44 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
 
-const streakSchema = new Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    required: true,
+const Streak = sequelize.define(
+  "Streak",
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    actionType: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    lastActionTime: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    streakCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    longestStreak: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    dailyChange: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
   },
-  actionType: {
-    type: String,
-    required: true,
-  },
-  lastActionTime: {
-    type: Date,
-    required: true,
-  },
-  streakCount: {
-    type: Number,
-    default: 0,
-  },
-  longestStreak: {
-    type: Number,
-    default: 0,
-  },
-  dailyChange: {
-    type: Number,
-    default: 0,
-  },
-});
-
-const Streak = mongoose.model("Streak", streakSchema);
+  {
+    sequelize,
+    modelName: "Streak",
+  }
+);
+Streak.sync();
 
 module.exports = Streak;

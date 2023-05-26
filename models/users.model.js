@@ -1,49 +1,63 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
 
-const userSchema = new Schema(
+const User = sequelize.define(
+  "User",
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
     f_id: {
-      type: String,
+      type: DataTypes.STRING,
     },
     name: {
-      type: String,
-      required: true,
+      type: DataTypes.STRING,
+      allowNull: false,
       trim: true,
     },
     email: {
-      type: String,
-      required: true,
+      type: DataTypes.STRING,
+      allowNull: false,
       unique: true,
       lowercase: true,
       trim: true,
-      match: /^\S+@\S+\.\S+$/, // regex for email validation
+      validate: {
+        isEmail: true, // email validation
+      },
     },
     password: {
-      type: String,
-      minlength: 6, // at least 6 characters
-      maxlength: 128, // at most 128 characters
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [6, 128], // at least 6 characters, at most 128 characters
+      },
     },
     profilePicture: {
-      type: String,
+      type: DataTypes.STRING,
     },
     role: {
-      type: String,
-      default: "regular",
-      enum: ["regular", "admin"], // only allow 'regular' or 'admin' as values
+      type: DataTypes.STRING,
+      defaultValue: "regular",
+      validate: {
+        isIn: [["regular", "admin"]], // only allow 'regular' or 'admin' as values
+      },
     },
-    gratitudes: [{ type: Schema.Types.ObjectId, ref: "Gratitude" }],
     provider: {
-      type: String,
-      default: "email",
-      enum: ["email", "google", "apple"],
+      type: DataTypes.STRING,
+      defaultValue: "email",
+      validate: {
+        isIn: [["email", "google", "apple"]],
+      },
     },
   },
   {
+    sequelize,
+    modelName: "User",
     timestamps: true,
   }
 );
-
-const User = mongoose.model("User", userSchema);
+User.sync();
 
 module.exports = User;

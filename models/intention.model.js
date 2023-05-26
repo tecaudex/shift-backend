@@ -1,27 +1,24 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
+const User = require("./users.model");
 
-const intentionSchema = new Schema(
-  {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    event: {
-      type: String,
-      required: true,
-    },
-    intention: {
-      type: String,
-      required: true,
-    },
+const Intention = sequelize.define("Intention", {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
   },
-  {
-    timestamps: true,
-  }
-);
+  event: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  intention: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
 
-const Intention = mongoose.model("Intention", intentionSchema);
+Intention.belongsTo(User, { foreignKey: "userId" });
+Intention.sync();
 
 module.exports = Intention;

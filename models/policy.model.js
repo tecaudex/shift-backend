@@ -1,13 +1,26 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
 
-const policySchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  text: { type: String, required: true },
-  updated_at: { type: Date, default: Date.now },
+const Policy = sequelize.define("Policy", {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  text: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 });
-
-policySchema.index({ title: 1 }, { unique: true });
-
-const Policy = mongoose.model("Policy", policySchema);
+Policy.sync();
 
 module.exports = Policy;

@@ -1,21 +1,36 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
+const Session = require("./session.model");
 
-const messageSchema = new Schema(
+const Message = sequelize.define(
+  "Message",
   {
-    sessionId: {
-      type: Schema.Types.ObjectId,
-      ref: "Session",
-      required: true,
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
-    role: String,
-    content: String,
+    sessionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: "Sessions",
+        key: "id",
+      },
+    },
+    role: {
+      type: DataTypes.STRING,
+    },
+    content: {
+      type: DataTypes.STRING,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Message = mongoose.model("Message", messageSchema);
+Message.belongsTo(Session, { foreignKey: "sessionId" });
+Message.sync();
 
 module.exports = Message;

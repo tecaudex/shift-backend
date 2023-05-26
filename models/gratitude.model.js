@@ -1,27 +1,28 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
+const User = require("./users.model");
 
-const gratitudeSchema = new Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    timeTaken: {
-      type: Number,
-      required: true,
-    },
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+const Gratitude = sequelize.define("Gratitude", {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
   },
-  {
-    timestamps: true,
-  }
-);
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  timeTaken: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+});
 
-const Gratitude = mongoose.model("Gratitude", gratitudeSchema);
+Gratitude.belongsTo(User, { foreignKey: "userId" });
+Gratitude.sync();
 
 module.exports = Gratitude;

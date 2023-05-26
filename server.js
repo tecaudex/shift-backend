@@ -17,8 +17,9 @@ const environment = process.env.NODE_ENV || "development";
 configureEnvironment(environment);
 
 // connecting to db
-const db = require("./db");
-db.init();
+// const db = require("./db");
+// db.init();
+const sequelize = require("./db/connection");
 
 // connecting to openai
 require("./middleware/openai");
@@ -57,7 +58,7 @@ const userRoutes = require("./routes/users.router");
 const gratitudeRoutes = require("./routes/gratitude.router");
 const intentionRoutes = require("./routes/intention.router");
 const sessionRoutes = require("./routes/session.router");
-const gamesRoutes = require("./routes/games.router");
+const exerciseRoutes = require("./routes/exercise.router");
 // const openaiRoutes = require("./routes/openai.router");
 const { sendUserMessageToOpenAI } = require("./services/openai.services");
 const {
@@ -89,7 +90,7 @@ app.use("/users", userRoutes);
 app.use("/gratitude", gratitudeRoutes);
 app.use("/intention", intentionRoutes);
 app.use("/session", sessionRoutes);
-app.use("/games", gamesRoutes);
+app.use("/exercise", exerciseRoutes);
 
 app.get("/", (req, res) => {
   return res.json({

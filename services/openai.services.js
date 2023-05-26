@@ -4,7 +4,7 @@ const Message = require("../models/message.model");
 const SessionController = require("../controllers/session.controller");
 const Readable = require("stream").Readable;
 const OPENAI_URL = process.env.OPENAI_API_URL;
-const Games = require("../models/games.model");
+const Exercise = require("../models/exercise.model");
 
 // ======= Options for OpenAI API =======
 const options = {
@@ -32,7 +32,7 @@ const body = {
 exports.sendSystemMessageToOpenAI = async (socket, sessionId, gameId) => {
   // console.log("sendSystemMessageToOpenAI \n sessionId: ",sessionId);
   // const content = process.env.SYSTEM_MESSAGE_CONTENT;
-  const data = await Games.findById(gameId);
+  const data = await Exercise.findByPk(gameId);
   // console.log("data", data);
   if (!data) {
     socket.emit("sendSystemMessage/error", "Game not found");

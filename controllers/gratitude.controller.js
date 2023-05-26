@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const Gratitude = require("../models/gratitude.model");
 const crypto = require("crypto");
 
@@ -13,61 +14,52 @@ function decrypt(ciphertext) {
   return decrypted;
 }
 
+// Create gratitude
 exports.create = async (req, res) => {
   const user = req.user;
   const { title, description, timeTaken } = req.body;
 
-  if (!title || !description || !timeTaken)
+  if (!title || !description || !timeTaken) {
     return res
       .status(400)
-      .json({ error: "Please send title, description and timeTaken" });
+      .json({ error: "Please send title, description, and timeTaken" });
+  }
 
-  const gratitude = new Gratitude({
-    title: title,
-    description: description,
-    timeTaken: timeTaken,
-    user: user._id,
-  });
+  try {
+    const gratitude = await Gratitude.create({
+      title,
+      description,
+      timeTaken,
+      userId: user._id,
+    });
 
-  gratitude
-    .save()
-    .then(async (savedGratitude) => {
-      user.gratitudes.push(savedGratitude._id);
+    user.gratitudes.push(gratitude.id);
 
-      user
-        .save()
-        .then((savedUser) => res.status(200).json(savedGratitude))
-        .catch((err) =>
-          res
-            .status(500)
-            .json({ error: `Error while saving user to DB, ${err}` })
-        );
-    })
-    .catch((err) =>
-      res
-        .status(500)
-        .json({ error: `Error while saving Gratitude to DB, ${err}` })
-    );
+    await user.save();
+
+    return res.status(200).json(gratitude);
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ error: "Error while saving Gratitude to DB" });
+  }
 };
 
 // Get gratitudes for the week with pagination
-exports.getGratitudesForWeek = async (req, res, next) => {
+exports.getGratitudesForWeek = async (req, res) => {
+  const user = req.user;
+  const { page = 1 } = req.query;
+
   try {
-    // Get user from the request
-    const user = req.user;
-
-    // Get the page number from the request query (default to 1 if not provided)
-    const page = parseInt(req.query.page) || 1;
-
-    // Find the last gratitude date for the current user
-    const lastGratitude = await Gratitude.findOne({ user: user._id }).sort({
-      createdAt: -1,
+    const lastGratitude = await Gratitude.findOne({
+      where: { userId: user._id },
+      order: [["createdAt", "DESC"]],
     });
 
     if (lastGratitude) {
       const date = lastGratitude.createdAt;
 
-      // Calculate the date range for the week containing the given date
       const startOfWeek = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -79,25 +71,24 @@ exports.getGratitudesForWeek = async (req, res, next) => {
         date.getDate() + (6 - date.getDay()) - (page - 1) * 7
       );
 
-      // Find gratitudes within the date range for the current user
-      const gratitudes = await Gratitude.find({
-        user: user._id,
-        createdAt: { $gte: startOfWeek, $lte: endOfWeek },
+      const gratitudes = await Gratitude.findAll({
+        where: {
+          userId: user._id,
+          createdAt: { [Op.between]: [startOfWeek, endOfWeek] },
+        },
       });
 
-      // Decrypt the title and description of each gratitude
       const decryptedGratitudes = gratitudes.map((gratitude) => {
         const decryptedTitle = decrypt(gratitude.title);
         const decryptedDescription = decrypt(gratitude.description);
 
         return {
-          ...gratitude._doc,
+          ...gratitude.dataValues,
           title: decryptedTitle,
           description: decryptedDescription,
         };
       });
 
-      // Create week label
       const weekNumber = getWeekOfMonth(startOfWeek);
       const monthName = getMonthName(startOfWeek);
       const weekLabel = `${weekNumber}${getOrdinalSuffix(
@@ -114,14 +105,57 @@ exports.getGratitudesForWeek = async (req, res, next) => {
     }
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Failed to retrieve gratitudes" });
+  }
+};
+
+// Get all gratitudes with pagination
+exports.getAllGratitudes = async (req, res) => {
+  const user = req.user;
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    const skip = (page - 1) * limit;
+
+    const gratitudes = await Gratitude.findAll({
+      where: { userId: user._id },
+      order: [["createdAt", "DESC"]],
+      offset: skip,
+      limit,
+    });
+
+    const decryptedGratitudes = gratitudes.map((gratitude) => {
+      const decryptedTitle = decrypt(gratitude.title);
+      const decryptedDescription = decrypt(gratitude.description);
+
+      return {
+        ...gratitude.dataValues,
+        title: decryptedTitle,
+        description: decryptedDescription,
+      };
+    });
+
+    const totalGratitudes = await Gratitude.count({
+      where: { userId: user._id },
+    });
+
+    const totalPages = Math.ceil(totalGratitudes / limit);
+
+    return res.status(200).json({
+      gratitudes: decryptedGratitudes,
+      currentPage: page,
+      totalPages,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Failed to retrieve gratitudes" });
   }
 };
 
 // Helper function to get the ordinal suffix of a number
 function getOrdinalSuffix(n) {
-  const s = ["th", "st", "nd", "rd"],
-    v = n % 100;
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
@@ -136,51 +170,3 @@ function getMonthName(date) {
   const monthName = date.toLocaleString("en-US", options);
   return monthName;
 }
-
-// Get all gratitudes with pagination
-exports.getAllGratitudes = async (req, res, next) => {
-  try {
-    // Get user from the request
-    const user = req.user;
-
-    // Get pagination parameters from the request query (or use default values)
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    // Calculate the number of documents to skip
-    const skip = (page - 1) * limit;
-
-    // Find gratitudes for the current user with pagination
-    const gratitudes = await Gratitude.find({ user: user._id })
-      .sort({ createdAt: -1 }) // Order by creation date (descending)
-      .skip(skip)
-      .limit(limit);
-
-    // Decrypt the title and description of each gratitude
-    const decryptedGratitudes = gratitudes.map((gratitude) => {
-      const decryptedTitle = decrypt(gratitude.title);
-      const decryptedDescription = decrypt(gratitude.description);
-
-      return {
-        ...gratitude._doc,
-        title: decryptedTitle,
-        description: decryptedDescription,
-      };
-    });
-
-    // Count the total number of gratitudes for the current user
-    const totalGratitudes = await Gratitude.countDocuments({ user: user._id });
-
-    // Calculate the total number of pages
-    const totalPages = Math.ceil(totalGratitudes / limit);
-
-    return res.status(200).json({
-      gratitudes: decryptedGratitudes,
-      currentPage: page,
-      totalPages,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error });
-  }
-};

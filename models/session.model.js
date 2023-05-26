@@ -1,33 +1,44 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { DataTypes } = require("sequelize");
+const sequelize = require("../db/connection");
+const User = require("./users.model");
+const Gratitude = require("./gratitude.model");
 
-const sessionSchema = new Schema(
-  {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    gratitudes: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Gratitude",
-      },
-    ],
-    timeTaken: {
-      type: Number,
-      default: 0,
-    },
-    feeling: {
-      type: String,
-    },
-    isSessionOpen: Boolean,
+const Session = sequelize.define("Session", {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
   },
-  {
-    timestamps: true,
-  }
-);
+  user: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: "Users",
+      key: "id",
+    },
+  },
+  gratitudes: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: "Gratitude",
+      key: "id",
+    },
+  },
+  timeTaken: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  feeling: {
+    type: DataTypes.STRING,
+  },
+  isSessionOpen: {
+    type: DataTypes.BOOLEAN,
+  },
+});
 
-const Session = mongoose.model("Session", sessionSchema);
+Session.belongsTo(User, { foreignKey: "user" });
+Session.hasMany(Gratitude, { foreignKey: "sessionId" });
+Session.sync();
 
 module.exports = Session;
