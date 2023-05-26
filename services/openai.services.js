@@ -4,6 +4,7 @@ const Message = require("../models/message.model");
 const SessionController = require("../controllers/session.controller");
 const Readable = require("stream").Readable;
 const OPENAI_URL = process.env.OPENAI_API_URL;
+const Games = require("../models/games.model");
 
 // ======= Options for OpenAI API =======
 const options = {
@@ -28,9 +29,17 @@ const body = {
 
 // ======= Send system message to OpenAI for the first time =======
 
-exports.sendSystemMessageToOpenAI = async (sessionId, socket) => {
+exports.sendSystemMessageToOpenAI = async (socket, sessionId, gameId) => {
   // console.log("sendSystemMessageToOpenAI \n sessionId: ",sessionId);
-  const content = process.env.SYSTEM_MESSAGE_CONTENT;
+  // const content = process.env.SYSTEM_MESSAGE_CONTENT;
+  const data = await Games.findById(gameId);
+  // console.log("data", data);
+  if (!data) {
+    socket.emit("sendSystemMessage/error", "Game not found");
+    return;
+  }
+  const content = data.systemMessage;
+  // console.log("content", content);
   //Saving new User Message using Message Helper
   MessageHelper.saveThisMessage(sessionId, "system", content);
 
