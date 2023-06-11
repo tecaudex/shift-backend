@@ -7,6 +7,9 @@
 /stag.env
 /prod.env
 
+# Ignore adminjs
+.adminjs
+
 # Ignore log files
 *.log
 /middleware/logs
