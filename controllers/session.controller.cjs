@@ -1,6 +1,6 @@
-const Session = require("../models/session.model");
-const Gratitude = require("../models/gratitude.model");
-const User = require("./users.controller");
+const Session = require("../models/session.model.cjs");
+const Gratitude = require("../models/gratitude.model.cjs");
+const User = require("./users.controller.cjs");
 const crypto = require("crypto");
 
 const algorithm = "aes-256-cbc";

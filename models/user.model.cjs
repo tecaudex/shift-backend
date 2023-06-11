@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
+const { sequelize } = require("../db/connection.cjs");
+const Chat = require("./chat.model.cjs");
 
 const User = sequelize.define(
   "User",
@@ -9,47 +10,29 @@ const User = sequelize.define(
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
     },
-    f_id: {
-      type: DataTypes.STRING,
-    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      trim: true,
     },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      lowercase: true,
-      trim: true,
       validate: {
-        isEmail: true, // email validation
+        isEmail: true,
       },
     },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        len: [6, 128], // at least 6 characters, at most 128 characters
-      },
     },
     profilePicture: {
       type: DataTypes.STRING,
+      allowNull: true,
     },
-    role: {
+    accountCreationMethod: {
       type: DataTypes.STRING,
-      defaultValue: "regular",
-      validate: {
-        isIn: [["regular", "admin"]], // only allow 'regular' or 'admin' as values
-      },
-    },
-    provider: {
-      type: DataTypes.STRING,
-      defaultValue: "email",
-      validate: {
-        isIn: [["email", "google", "apple"]],
-      },
+      allowNull: false,
     },
   },
   {
@@ -58,6 +41,7 @@ const User = sequelize.define(
     timestamps: true,
   }
 );
-User.sync();
+
+User.sync({ alter: true });
 
 module.exports = User;

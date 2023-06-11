@@ -1,6 +1,6 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
-const User = require("./users.model");
+const { sequelize } = require("../db/connection.cjs");
+const User = require("./user.model.cjs");
 
 const Gratitude = sequelize.define("Gratitude", {
   id: {
@@ -23,6 +23,5 @@ const Gratitude = sequelize.define("Gratitude", {
 });
 
 Gratitude.belongsTo(User, { foreignKey: "userId" });
-Gratitude.sync();
 
 module.exports = Gratitude;

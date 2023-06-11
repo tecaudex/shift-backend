@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const Gratitude = require("../models/gratitude.model");
+const Gratitude = require("../models/gratitude.model.cjs");
 const crypto = require("crypto");
 
 const algorithm = "aes-256-cbc";

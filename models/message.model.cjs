@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
-const Session = require("./session.model");
+const { sequelize } = require("../db/connection.cjs");
 
 const Message = sequelize.define(
   "Message",
@@ -10,27 +9,26 @@ const Message = sequelize.define(
       primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
     },
-    sessionId: {
+    chatId: {
       type: DataTypes.UUID,
       allowNull: false,
-      references: {
-        model: "Sessions",
-        key: "id",
-      },
     },
     role: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     content: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
   },
   {
+    sequelize,
+    modelName: "Message",
     timestamps: true,
   }
 );
 
-Message.belongsTo(Session, { foreignKey: "sessionId" });
-Message.sync();
+Message.sync({ alter: true });
 
 module.exports = Message;

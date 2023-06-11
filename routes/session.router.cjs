@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateFirebaseUser } = require("../middleware/firebase");
 const {
   createSession,
   getAllSessions,
@@ -9,9 +8,10 @@ const {
   addFeelingToSession,
   getFeelingPercentage,
   getGratitudesBySessionId,
-} = require("../controllers/session.controller");
+} = require("../controllers/session.controller.cjs");
+const authenticate = require("../middleware/authMiddleware.cjs");
 
-router.use(authenticateFirebaseUser);
+router.use(authenticate);
 
 // Get feeling percentage
 router.get("/feeling", getFeelingPercentage);

@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
+const { sequelize } = require("../db/connection.cjs");
 
 const Streak = sequelize.define(
   "Streak",
@@ -39,6 +39,5 @@ const Streak = sequelize.define(
     modelName: "Streak",
   }
 );
-Streak.sync();
 
 module.exports = Streak;

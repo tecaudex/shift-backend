@@ -1,9 +1,125 @@
-const User = require("../models/users.model");
+const User = require("../models/user.model.cjs");
 const fs = require("fs");
 const AWS = require("aws-sdk");
-const Session = require("../models/session.model");
+const Session = require("../models/session.model.cjs");
 const moment = require("moment");
-const Gratitude = require("../models/gratitude.model");
+const Gratitude = require("../models/gratitude.model.cjs");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+// Function for user signup
+exports.signup = async (req, res) => {
+  // Extract the required data from the request body
+  const { name, email, password, accountCreationMethod } = req.body;
+  const file = req.file;
+
+  try {
+    // Upload profile picture to AWS S3
+    let profilePicture;
+    if (file) {
+      AWS.config.update({
+        accessKeyId: process.env.AWS_ACCESS_KEY,
+        secretAccessKey: process.env.AWS_SECRET_KEY,
+      });
+
+      const s3 = new AWS.S3({ region: process.env.AWS_BUCKET_REGION });
+
+      const key = `user_profile_image/${Date.now()}-${file.originalname}`;
+
+      const fileStream = fs.createReadStream(file.path);
+
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Body: fileStream,
+        Key: key,
+      };
+
+      const s3UploadResponse = await s3.upload(uploadParams).promise();
+      profilePicture = s3UploadResponse.Location;
+
+      fs.unlink(file.path, (err) => {
+        if (err) {
+          console.error(err);
+        }
+        console.log("Deleted file successfully.");
+      });
+    }
+
+    // Generate a salt for password hashing
+    const salt = await bcrypt.genSalt(10);
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create a new user with the hashed password
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      profilePicture,
+      accountCreationMethod,
+    });
+
+    // Generate a JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET);
+
+    // Send the response with the token
+    res.json({ token });
+  } catch (error) {
+    // Handle any errors that occur during signup
+    console.error(error);
+    res.status(500).json({ error: "Failed to sign up" });
+  }
+};
+
+// Function for user login
+exports.login = async (req, res) => {
+  // Extract the required data from the request body
+  const { email, password } = req.body;
+
+  try {
+    // Find the user by their email
+    const user = await User.findOne({ where: { email } });
+
+    // Check if the user exists
+    if (!user) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    // Compare the provided password with the hashed password
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+    // Check if the password matches
+    if (!isPasswordMatch) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_ACCESS_SECRET);
+
+    // Send the response with the token
+    res.json({ token });
+  } catch (error) {
+    // Handle any errors that occur during login
+    console.error(error);
+    res.status(500).json({ error: "Failed to log in" });
+  }
+};
+
+exports.checkUserExists = async (req, res) => {
+  const { email } = req.query;
+
+  try {
+    const user = await User.findOne({ email });
+
+    res.json({ exists: !!user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 exports.getAll = async (req, res) => {
   try {
@@ -21,22 +137,23 @@ exports.getAll = async (req, res) => {
   }
 };
 
-exports.getUser = (req, res) => {
+// Get user
+exports.getUser = async (req, res) => {
   try {
     const user = req.user;
 
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      profilePicture: user.profilePicture,
-      createdAt: user.createdAt,
-    };
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    return res.json(userData);
-  } catch (err) {
-    console.error(err.message);
-    return res.status(500).json({ error: "Server error" });
+    // Exclude the password field from the user object
+    const userWithoutPassword = { ...user.toJSON() };
+    delete userWithoutPassword.password;
+
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to get user" });
   }
 };
 

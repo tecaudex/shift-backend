@@ -1,26 +1,23 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
+const { sequelize } = require("../db/connection.cjs");
+const User = require("./user.model.cjs");
 
-const Policy = sequelize.define("Policy", {
+const Intention = sequelize.define("Intention", {
   id: {
     type: DataTypes.UUID,
     primaryKey: true,
     defaultValue: DataTypes.UUIDV4,
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  text: {
+  event: {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  updated_at: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+  intention: {
+    type: DataTypes.STRING,
+    allowNull: false,
   },
 });
-Policy.sync();
 
-module.exports = Policy;
+Intention.belongsTo(User, { foreignKey: "userId" });
+
+module.exports = Intention;

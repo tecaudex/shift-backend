@@ -1,4 +1,4 @@
-const Intention = require("../models/intention.model");
+const Intention = require("../models/intention.model.cjs");
 const crypto = require("crypto");
 
 const algorithm = "aes-256-cbc";

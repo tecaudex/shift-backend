@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../db/connection");
+const { sequelize } = require("../db/connection.cjs");
+const Chat = require("./chat.model.cjs");
 
 const Exercise = sequelize.define(
   "Exercise",
@@ -15,7 +16,7 @@ const Exercise = sequelize.define(
       allowNull: false,
     },
     systemMessage: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     isPremium: {
@@ -24,8 +25,12 @@ const Exercise = sequelize.define(
     },
   },
   {
+    sequelize,
+    modelName: "Exercise",
     timestamps: true,
   }
 );
-Exercise.sync();
+
+Exercise.sync({ alter: true });
+
 module.exports = Exercise;

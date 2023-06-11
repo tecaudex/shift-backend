@@ -1,21 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const userController = require("../controllers/users.controller");
-const { authenticateFirebaseUser } = require("../middleware/firebase");
+const userController = require("../controllers/users.controller.cjs");
 const multer = require("multer");
 const upload = multer({
   limits: { fileSize: 50 * 1000 * 1000 },
   dest: "uploads/",
 });
-const streakRoutes = require("./streaks.router");
+const streakRoutes = require("./streaks.router.cjs");
+const authenticate = require("../middleware/authMiddleware.cjs");
 
-router.use(authenticateFirebaseUser);
+// User signup route
+router.post("/signup", userController.signup);
+
+// User login route
+router.post("/login", userController.login);
+
+// Check if user exists route
+router.get("/exists", userController.checkUserExists);
 
 // get user profile
 router.use("/streaks", streakRoutes);
 
-// get user profile
-router.get("/", userController.getUser);
+// GET user by ID
+router.get("/", authenticate, userController.getUser);
 
 // update user profile
 router.patch("/", upload.single("profilePicture"), userController.updateUser);

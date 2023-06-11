@@ -1,74 +1,39 @@
-const express = require("express");
+import dotenv from "dotenv";
+dotenv.config();
+
+import { initializeDatabase } from "./db/connection.cjs";
+initializeDatabase();
+import express from "express";
+import color from "colors";
+import "./middleware/openai.mjs";
+import { exec } from "child_process";
+import User from "./models/user.model.cjs";
+import "./models/associations.cjs";
+import bodyParserMiddleware from "./middleware/body-parser.cjs";
+import helmetMiddleware from "./middleware/helmet.cjs";
+import corsMiddleware from "./middleware/cors.cjs";
+import compressionMiddleware from "./middleware/compression.cjs";
+import morganMiddleware from "./middleware/morgan.cjs";
+import userRoutes from "./routes/users.router.cjs";
+import gratitudeRoutes from "./routes/gratitude.router.cjs";
+import intentionRoutes from "./routes/intention.router.cjs";
+import sessionRoutes from "./routes/session.router.cjs";
+import exerciseRoutes from "./routes/exercise.router.cjs";
+import init from "./services/adminjs.services.mjs";
+import * as jwt from "jsonwebtoken";
+import * as ai from "./services/openai.services.cjs";
+
 const app = express();
-// const AdminJS = require("adminjs");
-// const AdminJSExpress = require("@adminjs/express");
-// const AdminJSMongoose = require("@adminjs/mongoose");
-const schedule = require("node-schedule");
-const { deleteEmptySessions } = require("./delete-empty-sessions");
-const color = require("colors");
-// configure to get env
-const configureEnvironment = require("./config/config");
 
-// Determine the current environment based on server configuration
-// Default to 'development' if NODE_ENV is not set
-const environment = process.env.NODE_ENV || "development";
-
-// Load environment-specific configuration
-configureEnvironment(environment);
-
-// connecting to db
-// const db = require("./db");
-// db.init();
-const sequelize = require("./db/connection");
-
-// connecting to openai
-require("./middleware/openai");
-
-const User = require("./models/users.model");
-const Gratitude = require("./models/gratitude.model");
-const Session = require("./models/session.model");
-const Policy = require("./models/policy.model");
-
-// AdminJS.registerAdapter({
-//   Resource: AdminJSMongoose.Resource,
-//   Database: AdminJSMongoose.Database,
-// });
-
-// const admin = new AdminJS({
-//   resources: [User, Gratitude, Session, Policy],
-// });
-
-// const adminRouter = AdminJSExpress.buildRouter(admin);
-// app.use(admin.options.rootPath, adminRouter);
-
-// importing middleware
-const bodyParserMiddleware = require("./middleware/body-parser");
+init(app);
 bodyParserMiddleware(app);
-const helmetMiddleware = require("./middleware/helmet");
 helmetMiddleware(app);
-const corsMiddleware = require("./middleware/cors");
 corsMiddleware(app);
-const compressionMiddleware = require("./middleware/compression");
 compressionMiddleware(app);
-const morganMiddleware = require("./middleware/morgan");
 morganMiddleware(app);
 
-// configure to use routers
-const userRoutes = require("./routes/users.router");
-const gratitudeRoutes = require("./routes/gratitude.router");
-const intentionRoutes = require("./routes/intention.router");
-const sessionRoutes = require("./routes/session.router");
-const exerciseRoutes = require("./routes/exercise.router");
-// const openaiRoutes = require("./routes/openai.router");
-const { sendUserMessageToOpenAI } = require("./services/openai.services");
-const {
-  createChatSession,
-  sendSystemMessage,
-  closeChatSession,
-} = require("./controllers/session.controller");
-
 app.post("/deploy", async (req, res) => {
-  cconsole.log("Deploying new code...");
+  console.log("Deploying new code...");
   exec(
     "git pull origin main && npm install && pm2 restart app",
     (err, stdout, stderr) => {
@@ -86,11 +51,11 @@ app.post("/deploy", async (req, res) => {
   );
 });
 
-app.use("/users", userRoutes);
+app.use("/api/users", userRoutes);
 app.use("/gratitude", gratitudeRoutes);
 app.use("/intention", intentionRoutes);
 app.use("/session", sessionRoutes);
-app.use("/exercise", exerciseRoutes);
+app.use("/api/exercises", exerciseRoutes);
 
 app.get("/", (req, res) => {
   return res.json({
@@ -100,23 +65,15 @@ app.get("/", (req, res) => {
 });
 
 app.get("/terms", async (req, res) => {
-  const termsAndConditions = await Policy.findOne({
+  const termsAndConditions = await findOne({
     title: "Terms & Conditions",
   });
   res.json(termsAndConditions);
 });
 
 app.get("/privacy", async (req, res) => {
-  const privacyPolicy = await Policy.findOne({ title: "Privacy Policy" });
+  const privacyPolicy = await findOne({ title: "Privacy Policy" });
   res.json(privacyPolicy);
-});
-
-const rule = new schedule.RecurrenceRule();
-rule.hour = 0;
-rule.minute = 0;
-
-const job = schedule.scheduleJob(rule, function () {
-  deleteEmptySessions();
 });
 
 const PORT = process.env.PORT;
@@ -126,8 +83,9 @@ const ServerConnection = app.listen(PORT, function (err) {
   console.log("Server listening on Port", PORT);
 });
 
-//Passing server to socket.io
-const io = require("socket.io")(ServerConnection, {
+import { Server } from "socket.io";
+
+const io = new Server(ServerConnection, {
   pingTimeout: 60000,
   cors: {
     origin: "*",
@@ -135,25 +93,27 @@ const io = require("socket.io")(ServerConnection, {
   },
 });
 
-//Connecting and Using socket.io
+async function getUserFromToken(token) {
+  // Verify the token
+  const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
+  // Find the user in the database
+  return await User.findByPk(decoded.userId);
+}
+
 io.on("connection", (socket) => {
   console.log(`Connected to socket.io`.yellow);
 
-  socket.on("createChatSession", (userId) => {
-    console.log(`createChatSession | userId: ${userId}`.yellow);
-    createChatSession(socket, userId);
+  socket.on("createChatSession", async (body) => {
+    let { token, exerciseId } = body;
+    const user = await getUserFromToken(token);
+    console.log(`createChatSession | userId: ${user.id}`.yellow);
+    ai.createChatSession(socket, user.id, exerciseId);
   });
 
-  socket.on("sendSystemMessage", (body) => {
-    let { sessionId, gameId } = body;
-    let consoleData = `sendSystemMessage | sessionId: ${sessionId} | gameId: ${gameId}`;
-    console.log(`${consoleData}`.yellow);
-    sendSystemMessage(socket, sessionId, gameId);
-  });
-
-  socket.on("userMessage", (body) => {
+  socket.on("receiveUserMessage", (body) => {
     console.log(`userMessage | body: ${JSON.stringify(body)}`.yellow);
-    let { sessionId, content } = body;
-    sendUserMessageToOpenAI(sessionId, content, socket);
+    let { chatId, content } = body;
+    ai.sendUserMessageToOpenAI(socket, chatId, content);
   });
 });
