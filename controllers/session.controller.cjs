@@ -1,10 +1,7 @@
-const Session = require("../models/session.model");
-const Gratitude = require("../models/gratitude.model");
+const Session = require("../models/session.model.cjs");
+const Gratitude = require("../models/gratitude.model.cjs");
+const User = require("./users.controller.cjs");
 const crypto = require("crypto");
-const { updateStreak } = require("./streak.controller");
-const OpenAIServices = require("../services/openai.services");
-const MessageHelper = require("../helper/messages.helper");
-const User = require("../controllers/users.controller");
 
 const algorithm = "aes-256-cbc";
 const key = process.env.GRATITUDE_ENCRYPTION_KEY;
@@ -25,6 +22,7 @@ function decrypt(ciphertext) {
   decrypted += decipher.final("utf8");
   return decrypted;
 }
+
 async function checkChatSessionErrorHandler(socket, err) {
   console.log("Error while checking chat session", err);
   socket.emit("checkChatSession/Error", {
@@ -32,6 +30,7 @@ async function checkChatSessionErrorHandler(socket, err) {
     msg: "Error while checking chat session",
   });
 }
+
 async function closeChatSessionErrorHandler(socket, err) {
   console.log("Error while closing chat session", err);
   socket.emit("closeChatSession/Error", {
@@ -44,103 +43,72 @@ exports.createChatSession = async (socket, userId) => {
   try {
     // create a session with the user id
     const session = await Session.create({
-      user: userId,
+      userId: userId,
       isSessionOpen: true,
     });
 
-    socket.emit("sessionId", session._id);
+    socket.emit("sessionId", session.id);
   } catch (err) {
     checkChatSessionErrorHandler(socket, err);
   }
 };
 
-exports.sendSystemMessage = async (socket, sessionId) => {
+exports.sendSystemMessage = async (socket, sessionId, gameId) => {
   try {
     // send the system message to openai
-    await OpenAIServices.sendSystemMessageToOpenAI(sessionId, socket);
+    await OpenAIServices.sendSystemMessageToOpenAI(socket, sessionId, gameId);
   } catch (err) {
     checkChatSessionErrorHandler(socket, err);
   }
 };
 
-// async function createChatSession(userId, socket) {
-//   try {
-//     const session = await Session.create({
-//       user: userId,
-//       isSessionOpen: true,
-//     });
-
-//     socket.emit("checkChatSession/Response", {
-//       sessionId: session._id,
-//       points: session.points,
-//     });
-
-//     await OpenAIServices.sendSystemMessageToOpenAI(session._id, socket);
-//   } catch (err) {
-//     console.log("Error while creating new chat session", err);
-//     socket.emit("checkChatSession/Error", {
-//       error: "Internal server error: " + err,
-//       msg: "Error while creating new chat session",
-//     });
-//   }
-// }
-
 exports.closeChatSession = async (sessionId, socket) => {
-  // console.log("sessionId in closeChatSession", sessionId);
   try {
-    // ====== Update chat session to close it ======
-    const sessionStatus = await Session.findByIdAndUpdate(
-      sessionId,
-      { isSessionOpen: false },
-      { useFindAndModify: false, new: true }
+    // Update chat session to close it
+    const sessionStatus = await Session.updateOne(
+      { id: sessionId },
+      { isSessionOpen: false }
     );
 
-    if (sessionStatus) {
-      // console.log("sessionStatus", sessionStatus);
+    if (sessionStatus.nModified === 1) {
       socket.emit("closeChatSession/Response", "SessionClosedSuccessfully");
-      User.saveGratitudePoints(sessionStatus.user, sessionStatus.points);
+      User.saveGratitudePoints(sessionId, sessionStatus.points);
     }
   } catch (err) {
     closeChatSessionErrorHandler(socket, err);
   }
 };
-// Save User Gratitude Points in his opened session
+
 exports.saveGratitudePoints = async (sessionId, points) => {
-  // console.log("saveGratitudePoints \n", "sessionId:", sessionId ,"\n points:" , points);
   try {
-    await Session.updateOne({ _id: sessionId }, { $inc: { points: points } });
+    await Session.updateOne({ id: sessionId }, { $inc: { points: points } });
   } catch (error) {
     console.log("error", error);
   }
 };
 
-// Create a new session
-exports.createSession = async (req, res, next) => {
-  try {
-    // Get user from the request
-    const user = req.user;
+exports.createSession = async (req, res) => {
+  const user = req.user;
 
-    // Create a new session document in the database
-    const session = new Session({
-      user: user._id,
+  try {
+    const session = await Session.create({
+      userId: user.id,
     });
 
-    await session.save();
-    updateStreak(user._id, "gratitude", new Date());
+    updateStreak(user.id, "gratitude", new Date());
+
     return res.status(200).json(session);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ error: "Internal server error: " + err });
+    return res.status(500).json({ error: "Internal server error: " + err });
   }
 };
-// Get all sessions
-exports.getAllSessions = async (req, res, next) => {
-  try {
-    // Get user from the request
-    const user = req.user;
 
-    // Find all sessions by user id
-    const sessions = await Session.find({ user: user._id });
+exports.getAllSessions = async (req, res) => {
+  const user = req.user;
+
+  try {
+    const sessions = await Session.find({ userId: user.id });
     if (!sessions) {
       return res.status(404).json([]);
     }
@@ -159,7 +127,7 @@ exports.getSession = async (req, res, next) => {
     const sessionId = req.params.sessionId;
 
     // Find if that session exists
-    const session = await Session.findById(sessionId);
+    const session = await Session.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ error: "No session found with that id." });
     }
@@ -177,7 +145,7 @@ exports.getGratitudesBySessionId = async (req, res, next) => {
     const sessionId = req.params.sessionId;
 
     // Find session by ID
-    const session = await Session.findById(sessionId);
+    const session = await Session.findByPk(sessionId);
 
     // If session is not found, return error message
     if (!session) {
@@ -186,7 +154,7 @@ exports.getGratitudesBySessionId = async (req, res, next) => {
 
     // Get gratitudes for the session
     const gratitudes = await Gratitude.find({
-      _id: { $in: session.gratitudes },
+      id: { $in: session.gratitudes },
     });
 
     // Decrypt title and description for each gratitude
@@ -224,13 +192,13 @@ exports.addFormToSession = async (req, res, next) => {
         .json({ error: "Please provide a title, description, and timeTaken." });
     }
 
-    const session = await Session.findById(sessionId);
+    const session = await Session.findByPk(sessionId);
 
     if (!session) {
       return res.status(404).json({ error: "Session not found." });
     }
 
-    if (session.user.toString() !== user._id.toString()) {
+    if (session.user.toString() !== user.id.toString()) {
       return res
         .status(401)
         .json({ error: "You do not have permission to access this session." });
@@ -240,12 +208,12 @@ exports.addFormToSession = async (req, res, next) => {
       title: encrypt(title),
       description: encrypt(description),
       timeTaken: timeTaken - session.timeTaken,
-      user: user._id,
+      user: user.id,
     });
 
     const savedGratitude = await gratitude.save();
 
-    session.gratitudes.push(savedGratitude._id);
+    session.gratitudes.push(savedGratitude.id);
     session.timeTaken = timeTaken;
 
     await session.save();
@@ -271,13 +239,13 @@ exports.addFeelingToSession = async (req, res, next) => {
       return res.status(400).json({ error: "Please provide a valid feeling." });
     }
 
-    const session = await Session.findById(sessionId);
+    const session = await Session.findByPk(sessionId);
 
     if (!session) {
       return res.status(404).json({ error: "Session not found." });
     }
 
-    if (session.user.toString() !== user._id.toString()) {
+    if (session.user.toString() !== user.id.toString()) {
       return res
         .status(401)
         .json({ error: "You do not have permission to access this session." });
@@ -298,7 +266,7 @@ exports.addFeelingToSession = async (req, res, next) => {
 
 exports.getFeelingPercentage = async (req, res, next) => {
   try {
-    const sessions = await Session.find({ user: req.user._id }).lean().exec();
+    const sessions = await Session.find({ user: req.user.id }).lean().exec();
     const numSessions = sessions.length;
     let sameCount = 0;
     let moreGratefulCount = 0;

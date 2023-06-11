@@ -1,4 +1,4 @@
-const Intention = require("../models/intention.model");
+const Intention = require("../models/intention.model.cjs");
 const crypto = require("crypto");
 
 const algorithm = "aes-256-cbc";
@@ -21,30 +21,28 @@ function decrypt(ciphertext) {
   return decrypted;
 }
 
-exports.setIntention = async (req, res, next) => {
+exports.setIntention = async (req, res) => {
+  const user = req.user;
+  const { event, intention } = req.body;
+
+  if (!event || !intention) {
+    return res
+      .status(400)
+      .json({ error: "Please provide an event and an intention." });
+  }
+
   try {
-    const {
-      user,
-      body: { event, intention },
-    } = req;
-
-    if (!event || !intention) {
-      return res
-        .status(400)
-        .json({ error: "Please provide an event and an intention." });
-    }
-
-    const newIntention = new Intention({
-      user: user._id,
+    const newIntention = await Intention.create({
+      userId: user._id,
       event: encrypt(event),
       intention: encrypt(intention),
     });
 
-    await newIntention.save();
-
     return res.status(200).json(newIntention);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: error });
+    return res
+      .status(500)
+      .json({ error: "Error while saving Intention to DB" });
   }
 };

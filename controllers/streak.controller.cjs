@@ -1,4 +1,4 @@
-const Streak = require("../models/streak.model");
+const Streak = require("../models/streak.model.cjs");
 
 async function getStreak(req, res) {
   try {
