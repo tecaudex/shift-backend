@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../db/connection.cjs");
-const Chat = require("./chat.model.cjs");
 
 const User = sequelize.define(
   "User",

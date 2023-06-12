@@ -16,7 +16,7 @@ router.post("/signup", userController.signup);
 router.post("/login", userController.login);
 
 // Check if user exists route
-router.get("/exists", userController.checkUserExists);
+router.post("/exists", userController.checkUserExists);
 
 // get user profile
 router.use("/streaks", streakRoutes);

@@ -109,12 +109,16 @@ exports.login = async (req, res) => {
 };
 
 exports.checkUserExists = async (req, res) => {
-  const { email } = req.query;
+  const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      where: {
+        email: email,
+      },
+    });
 
-    res.json({ exists: !!user });
+    return res.json({ exists: !!user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });
