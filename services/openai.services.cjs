@@ -41,7 +41,12 @@ async function sendSystemMessageToOpenAI(socket, chatId, exerciseId) {
     const response = await axios.post(
       process.env.OPENAI_API_URL,
       {
-        model: "gpt-3.5-turbo",
+        model: exercise.model,
+        temperature: exercise.temperature,
+        top_p: exercise.topP,
+        max_tokens: exercise.maxLength,
+        presence_penalty: exercise.presencePenalty,
+        frequency_penalty: exercise.frequencyPenalty,
         messages: [
           {
             role: "system",
@@ -77,9 +82,23 @@ async function sendUserMessageToOpenAI(socket, chatId, content) {
       },
     });
 
+    const chat = await Chat.findByPk(messages[0].chatId);
+
+    if (!chat) throw Error("Couldn't find chat.");
+
+    const exercise = await Exercise.findByPk(chat.exerciseId);
+
+    if (!exercise) throw Error("Couldn't find exercise.");
+
     // ======= Body for OpenAI API =======
     const body = {
-      model: "gpt-3.5-turbo",
+      model: exercise.model,
+      temperature: exercise.temperature,
+      top_p: exercise.topP,
+      max_tokens: exercise.maxLength,
+      presence_penalty: exercise.presencePenalty,
+      frequency_penalty: exercise.frequencyPenalty,
+      user: chat.userId,
       messages: messages,
       stream: true,
     };

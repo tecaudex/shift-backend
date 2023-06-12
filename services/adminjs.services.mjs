@@ -3,7 +3,6 @@ import AdminJSExpress from "@adminjs/express";
 import * as AdminJSSequelize from "@adminjs/sequelize";
 import Connect from "connect-pg-simple";
 import session from "express-session";
-
 import User from "../models/user.model.cjs";
 import Exercise from "../models/exercise.model.cjs";
 import Policy from "../models/policy.model.cjs";
