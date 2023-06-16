@@ -3,8 +3,8 @@ const router = express.Router();
 const userController = require("../controllers/users.controller.cjs");
 const multer = require("multer");
 const upload = multer({
-  limits: { fileSize: 50 * 1000 * 1000 },
-  dest: "uploads/",
+    limits: {fileSize: 50 * 1000 * 1000},
+    dest: "uploads/",
 });
 const streakRoutes = require("./streaks.router.cjs");
 const authenticate = require("../middleware/authMiddleware.cjs");
@@ -25,7 +25,7 @@ router.use("/streaks", streakRoutes);
 router.get("/", authenticate, userController.getUser);
 
 // update user profile
-router.patch("/", upload.single("profilePicture"), userController.updateUser);
+router.post("/", authenticate, upload.single("profilePicture"), userController.updateUser);
 
 // get user statistics
 router.get("/stats", userController.getGratitudeStats);
