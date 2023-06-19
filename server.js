@@ -19,6 +19,7 @@ import gratitudeRoutes from "./routes/gratitude.router.cjs";
 import intentionRoutes from "./routes/intention.router.cjs";
 import sessionRoutes from "./routes/session.router.cjs";
 import exerciseRoutes from "./routes/exercise.router.cjs";
+import inspirationRoutes from "./routes/inspiration.router.cjs";
 import init from "./services/adminjs.services.mjs";
 import * as jwt from "jsonwebtoken";
 import * as ai from "./services/openai.services.cjs";
@@ -56,6 +57,7 @@ app.use("/gratitude", gratitudeRoutes);
 app.use("/intention", intentionRoutes);
 app.use("/session", sessionRoutes);
 app.use("/api/exercises", exerciseRoutes);
+app.use("/api/inspiration", inspirationRoutes);
 
 app.get("/", (req, res) => {
   return res.json({
