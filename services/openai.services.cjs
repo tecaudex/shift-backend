@@ -16,7 +16,7 @@ const options = {
     responseType: "stream",
 };
 
-async function createChatSession(socket, userId, exerciseId) {
+async function createChatSession(io, socket, userId, exerciseId) {
     try {
         const chat = await Chat.create({userId, exerciseId});
 
@@ -24,15 +24,15 @@ async function createChatSession(socket, userId, exerciseId) {
 
         console.log("Chat ID: ", chat.id);
 
-        socket.emit("chatId", chat.id);
-
-        await sendSystemMessageToOpenAI(socket, chat.id, exerciseId);
+        socket.join(chat.id); // Join the socket to the room and send the chat ID to the client
+        socket.emit("chatId", chat.id); // Emit event to all sockets in the room (except the sender)
+        await sendSystemMessageToOpenAI(io, socket, chat.id, exerciseId);
     } catch (err) {
         console.log(err);
     }
 }
 
-async function sendSystemMessageToOpenAI(socket, chatId, exerciseId) {
+async function sendSystemMessageToOpenAI(io, socket, chatId, exerciseId) {
     try {
         const exercise = await Exercise.findByPk(exerciseId);
 
@@ -60,7 +60,7 @@ async function sendSystemMessageToOpenAI(socket, chatId, exerciseId) {
             options
         );
         const stream = Readable.from(response.data);
-        await processStreamData(chatId, socket, stream);
+        await processStreamData(io, chatId, socket, stream);
     } catch (err) {
         console.log(err);
     }
@@ -68,7 +68,7 @@ async function sendSystemMessageToOpenAI(socket, chatId, exerciseId) {
 
 // ============== Send user message to OpenAI  ==============
 
-async function sendUserMessageToOpenAI(socket, chatId, content) {
+async function sendUserMessageToOpenAI(io, socket, chatId, content) {
     // console.log( "sendUserMessageToOpenAI \n", "sessionId: ", sessionId, "\n content: ", content );
     try {
         // ======= Saving new User Message  =======
@@ -108,23 +108,26 @@ async function sendUserMessageToOpenAI(socket, chatId, content) {
         // ======= Calling OpenAI API =======
         let response = await axios.post(process.env.OPENAI_API_URL, body, options);
         const stream = Readable.from(response.data);
-        await processStreamData(chatId, socket, stream);
+        await processStreamData(io, chatId, socket, stream);
     } catch (err) {
         console.log("Error while calling Open AI API", err);
     }
 }
 
 // ======= Process Stream data to get relevant data and send to user =======
-async function processStreamData(chatId, socket, stream) {
+async function processStreamData(io, chatId, socket, stream) {
     let fullMessage = "";
-    stream.on("data", (streamData) => {
+    stream.on("data", async (streamData) => {
         // Convert buffer to string and remove "data: "
         let data = streamData.toString("utf-8").replace("data: ", "");
+
+        while (data.includes("data: ")) {
+            data = data.replace("data: ", "");
+        }
 
         // Get the relevant content words from the string
         const splitData = data.split("\n");
         data = fullMessage ? splitData[0] : splitData[2];
-
         // Check data and convert it from string to JSON
         if (data && data !== "" && data !== "[DONE]") {
             const {choices} = JSON.parse(data);
@@ -132,10 +135,10 @@ async function processStreamData(chatId, socket, stream) {
 
             if (!finished && content) {
                 fullMessage += content;
-                socket.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
+                io.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
             } else {
-                MessageHelper.saveThisMessage(chatId, "assistant", fullMessage);
-                socket.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
+                await MessageHelper.saveThisMessage(chatId, "assistant", fullMessage);
+                io.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
             }
         }
     });

@@ -105,22 +105,24 @@ async function getUserFromToken(token) {
   return await User.findByPk(decoded.userId);
 }
 
+const userConnections = new Map();
 
 io.on("connection", (socket) => {
-  console.log(`Connected to socket.io`.yellow);
+  console.log(`Connected to socket.io`);
 
   socket.on("createChatSession", async (body) => {
-    console.log("inside createChatSession");
     let { token, exerciseId } = body;
     const user = await getUserFromToken(token);
-    console.log(`createChatSession | userId: ${user.id}`.yellow);
+    console.log(`createChatSession | userId: ${user.id}`);
     socket.userId = user.id; // Associate the socket connection with the user
-    socket.join(body.chatId); // Join the socket to the chat room
-    await openai.createChatSession(socket, user.id, exerciseId);
+    await openai.createChatSession(io, socket, user.id, exerciseId);
+    const connections = userConnections.get(user.id) || new Set();
+    connections.add(socket);
+    userConnections.set(user.id, connections);
   });
 
   socket.on("receiveUserMessage", async (body) => {
-    console.log(`userMessage | body: ${JSON.stringify(body)}`.yellow);
+    console.log(`userMessage | body: ${JSON.stringify(body)}`);
     let { chatId, content } = body;
     const chat = await Chat.findByPk(chatId);
     if (chat.userId !== socket.userId) {
@@ -129,6 +131,18 @@ io.on("connection", (socket) => {
     }
     io.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
     io.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
-    await openai.sendUserMessageToOpenAI(socket, chatId, content);
+    await openai.sendUserMessageToOpenAI(io, socket, chatId, content);
+  });
+
+  socket.on("disconnect", () => {
+    if (socket.userId) {
+      const connections = userConnections.get(socket.userId);
+      if (connections) {
+        connections.delete(socket);
+        if (connections.size === 0) {
+          userConnections.delete(socket.userId);
+        }
+      }
+    }
   });
 });

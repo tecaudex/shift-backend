@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Session Test</title>
+    <script src="https://cdn.socket.io/4.2.0/socket.io.js"></script>
+    <script defer src="app.js"></script>
+</head>
+<body>
+<div>
+    <label for="tokenInput">Token:</label>
+    <input type="text" id="tokenInput" placeholder="User Token">
+</div><br/>
+<div>
+    <label for="exerciseIdInput">Exercise ID:</label>
+    <input type="text" id="exerciseIdInput" placeholder="Exercise ID">
+</div><br/>
+<div>
+    <button id="createSessionButton">Create Chat Session</button>
+</div><br/>
+<div>
+    <label for="chatIdInput">Chat ID:</label>
+    <input type="text" id="chatIdInput" placeholder="Chat ID" disabled>
+</div><br/>
+<div>
+    <label for="userMessageInput">User Message:</label>
+    <input type="text" id="userMessageInput" placeholder="Enter User Message">
+</div><br/>
+<div>
+    <button id="sendMessageButton" disabled>Send User Message</button>
+</div><br/>
+<div id="messageList"></div>
+</body>
+</html>
