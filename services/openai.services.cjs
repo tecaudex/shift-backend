@@ -22,9 +22,11 @@ async function createChatSession(socket, userId, exerciseId) {
 
         if (!chat) throw Error("Couldn't create chat session.");
 
+        console.log("Chat ID: ", chat.id);
+
         socket.emit("chatId", chat.id);
 
-        sendSystemMessageToOpenAI(socket, chat.id, exerciseId);
+        await sendSystemMessageToOpenAI(socket, chat.id, exerciseId);
     } catch (err) {
         console.log(err);
     }
@@ -36,7 +38,7 @@ async function sendSystemMessageToOpenAI(socket, chatId, exerciseId) {
 
         if (!exercise) throw Error("Couldn't find exercise.");
 
-        MessageHelper.saveThisMessage(chatId, "system", exercise.systemMessage);
+        await MessageHelper.saveThisMessage(chatId, "system", exercise.systemMessage);
 
         const response = await axios.post(
             process.env.OPENAI_API_URL,
@@ -116,28 +118,29 @@ async function sendUserMessageToOpenAI(socket, chatId, content) {
 async function processStreamData(chatId, socket, stream) {
     let fullMessage = "";
     stream.on("data", (streamData) => {
-        // ====== Convert buffer to string and remove "data: " ======
-        let data = streamData.toString("utf-8").replaceAll("data: ", "");
+        // Convert buffer to string and remove "data: "
+        let data = streamData.toString("utf-8").replace("data: ", "");
 
-        // ====== Get the relevant content words from the string ======
+        // Get the relevant content words from the string
         const splitData = data.split("\n");
         data = fullMessage ? splitData[0] : splitData[2];
 
-        // ====== Check Data & Convert data from String to JSON ======
+        // Check data and convert it from string to JSON
         if (data && data !== "" && data !== "[DONE]") {
             const {choices} = JSON.parse(data);
             const {content, finish_reason: finished} = choices[0].delta;
 
             if (!finished && content) {
                 fullMessage += content;
-                socket.emit("messageStream", content);
+                socket.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
             } else {
                 MessageHelper.saveThisMessage(chatId, "assistant", fullMessage);
-                socket.emit("messageStreamEnd", "streamEnd");
+                socket.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
             }
         }
     });
 }
+
 
 module.exports = {
     createChatSession,

@@ -81,6 +81,8 @@ exports.login = async (req, res) => {
     // Extract the required data from the request body
     const {email, password} = req.body;
 
+    console.log("email", email, password);
+
     try {
         // Find the user by their email
         const user = await User.findOne({where: {email}});

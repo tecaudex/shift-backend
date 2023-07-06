@@ -61,7 +61,6 @@ export default async function init(app) {
       name: "adminjs",
     }
   );
-
   app.use(admin.options.rootPath, adminRouter);
 
   admin.watch();
