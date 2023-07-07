@@ -11,6 +11,6 @@ router.get("/week", authenticate, getGratitudesForWeek);
 
 router.get("/", authenticate, getAllGratitudes);
 
-router.post("/create", authenticate, create);
+router.post("/", authenticate, create);
 
 module.exports = router;

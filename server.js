@@ -55,12 +55,12 @@ app.post("/deploy", async (req, res) => {
   );
 });
 
-app.use("/api/users", userRoutes);
+app.use("/user", userRoutes);
 app.use("/gratitude", gratitudeRoutes);
 app.use("/intention", intentionRoutes);
 app.use("/session", sessionRoutes);
-app.use("/api/exercises", exerciseRoutes);
-app.use("/api/inspiration", inspirationRoutes);
+app.use("/exercise", exerciseRoutes);
+app.use("/inspiration", inspirationRoutes);
 
 app.get("/", (req, res) => {
   return res.json({
