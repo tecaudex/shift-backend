@@ -1,13 +1,10 @@
 import dotenv from "dotenv";
-dotenv.config();
-
 import { initializeDatabase } from "./db/connection.cjs";
-initializeDatabase();
 import express from "express";
-import color from "colors";
 import "./middleware/openai.mjs";
 import { exec } from "child_process";
 import User from "./models/user.model.cjs";
+import Chat from "./models/chat.model.cjs";
 import "./models/associations.cjs";
 import bodyParserMiddleware from "./middleware/body-parser.cjs";
 import helmetMiddleware from "./middleware/helmet.cjs";
@@ -22,7 +19,13 @@ import exerciseRoutes from "./routes/exercise.router.cjs";
 import inspirationRoutes from "./routes/inspiration.router.cjs";
 import init from "./services/adminjs.services.mjs";
 import * as jwt from "jsonwebtoken";
-import * as ai from "./services/openai.services.cjs";
+import openai from "./services/openai.services.cjs";
+import { Server } from "socket.io";
+import { createServer } from "http";
+
+dotenv.config();
+
+initializeDatabase();
 
 const app = express();
 
@@ -80,19 +83,18 @@ app.get("/privacy", async (req, res) => {
 
 const PORT = process.env.PORT;
 
-const ServerConnection = app.listen(PORT, function (err) {
-  if (err) console.log("Error in server setup");
-  console.log("Server listening on Port", PORT);
-});
-
-import { Server } from "socket.io";
-
-const io = new Server(ServerConnection, {
+const server = createServer(app);
+const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
   },
+});
+
+server.listen(PORT, function (err) {
+  if (err) console.log("Error in server setup");
+  console.log("✅ Server listening on Port", PORT);
 });
 
 async function getUserFromToken(token) {
@@ -103,19 +105,44 @@ async function getUserFromToken(token) {
   return await User.findByPk(decoded.userId);
 }
 
+const userConnections = new Map();
+
 io.on("connection", (socket) => {
-  console.log(`Connected to socket.io`.yellow);
+  console.log(`Connected to socket.io`);
 
   socket.on("createChatSession", async (body) => {
     let { token, exerciseId } = body;
     const user = await getUserFromToken(token);
-    console.log(`createChatSession | userId: ${user.id}`.yellow);
-    ai.createChatSession(socket, user.id, exerciseId);
+    console.log(`createChatSession | userId: ${user.id}`);
+    socket.userId = user.id; // Associate the socket connection with the user
+    await openai.createChatSession(io, socket, user.id, exerciseId);
+    const connections = userConnections.get(user.id) || new Set();
+    connections.add(socket);
+    userConnections.set(user.id, connections);
   });
 
-  socket.on("receiveUserMessage", (body) => {
-    console.log(`userMessage | body: ${JSON.stringify(body)}`.yellow);
+  socket.on("receiveUserMessage", async (body) => {
+    console.log(`userMessage | body: ${JSON.stringify(body)}`);
     let { chatId, content } = body;
-    ai.sendUserMessageToOpenAI(socket, chatId, content);
+    const chat = await Chat.findByPk(chatId);
+    if (chat.userId !== socket.userId) {
+      console.log("Received message from wrong user");
+      return;
+    }
+    io.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
+    io.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
+    await openai.sendUserMessageToOpenAI(io, socket, chatId, content);
+  });
+
+  socket.on("disconnect", () => {
+    if (socket.userId) {
+      const connections = userConnections.get(socket.userId);
+      if (connections) {
+        connections.delete(socket);
+        if (connections.size === 0) {
+          userConnections.delete(socket.userId);
+        }
+      }
+    }
   });
 });
