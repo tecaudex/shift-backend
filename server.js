@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { initializeDatabase } from "./db/connection.cjs";
+import {initializeDatabase, sequelize} from "./db/connection.cjs";
 import express from "express";
 import "./middleware/openai.mjs";
 import { exec } from "child_process";
@@ -70,7 +70,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/terms", async (req, res) => {
-  const termsAndConditions = await findOne({
+  const termsAndConditions = await sequelize.findByPk({
     title: "Terms & Conditions",
   });
   res.json(termsAndConditions);
@@ -115,7 +115,8 @@ io.on("connection", (socket) => {
     const user = await getUserFromToken(token);
     console.log(`createChatSession | userId: ${user.id}`);
     socket.userId = user.id; // Associate the socket connection with the user
-    await openai.createChatSession(io, socket, user.id, exerciseId);
+    console.log(`Body: `, body);
+    await openai.createChatSession(socket, user.id, exerciseId);
     const connections = userConnections.get(user.id) || new Set();
     connections.add(socket);
     userConnections.set(user.id, connections);
@@ -131,11 +132,14 @@ io.on("connection", (socket) => {
     }
     io.to(chatId).emit("messageStream", content); // Emit event to all sockets in the room
     io.to(chatId).emit("messageStreamEnd", "streamEnd"); // Emit event to all sockets in the room
-    await openai.sendUserMessageToOpenAI(io, socket, chatId, content);
+    await openai.sendUserMessageToOpenAI(socket, chatId, content);
   });
 
   socket.on("disconnect", () => {
+    console.log(`Disconnected from socket.io`);
+    console.log("socket.userId: ", socket.userId);
     if (socket.userId) {
+      socket.disconnect();
       const connections = userConnections.get(socket.userId);
       if (connections) {
         connections.delete(socket);
