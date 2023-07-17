@@ -25,13 +25,15 @@ exports.createExercise = async (req, res) => {
 // 🕹️ Get all exercises
 exports.getExercises = async (req, res) => {
   try {
-    // 🎮 Retrieve all exercises
-    const exercises = await Exercise.findAll();
-    // ✅ Return exercises (200 - OK)
+    // Build order clause
+    const order = [["displayOrder", "ASC"]];
+    const exercises = await Exercise.findAll({
+      order,
+    });
+
     res.status(200).json(exercises);
   } catch (error) {
-    // ❌ Handle error retrieving exercises (500 - Internal Server Error)
-    res.status(500).json({ error: "Failed to retrieve exercises" });
+    res.status(500).json({ error });
   }
 };
 

@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { generatePresignedUrl } = require("../controllers/s3.controller");
-const { deleteFile } = require("../controllers/s3.controller.cjs");
+const { generatePresignedUrl, deleteFile } = require("../controllers/s3.controller.cjs");
 const { uuid } = require("uuidv4");
 const authenticate = require("../middleware/authMiddleware.cjs");
 
@@ -14,7 +13,7 @@ router.get("getUrl", async (req, res) => {
     const fileType = req.query.fileType;
     const fileName = uuid();
     const url = await generatePresignedUrl(fileName, fileType);
-    res.send({ url });
+    res.status(200).send({ url });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error generating S3 URL");
@@ -26,7 +25,7 @@ router.delete("delete", async (req, res) => {
     const filename = req.query.filename;
 
     const data = await deleteFile(filename);
-    res.send(data);
+    res.status(200).send(data);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error deleting S3 file");
