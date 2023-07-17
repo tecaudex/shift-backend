@@ -14,6 +14,7 @@ import chatRoutes from "./routes/chat.router.cjs";
 import messageRoutes from "./routes/message.router.cjs";
 import exerciseRoutes from "./routes/exercise.router.cjs";
 import inspirationRoutes from "./routes/inspiration.router.cjs";
+import s3Routes from "./routes/s3.router.cjs";
 import init from "./services/adminjs.services.mjs";
 import { createServer } from "http";
 
@@ -54,6 +55,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/exercise", exerciseRoutes);
 app.use("/api/inspiration", inspirationRoutes);
+app.use("/api/s3", s3Routes);
 
 app.get("/", (req, res) => {
   return res.json({
