@@ -6,7 +6,7 @@ const authenticate = require("../middleware/authMiddleware.cjs");
 router.use(authenticate);
 
 // Create a new game
-router.post("/create", exerciseController.createExercise);
+router.post("/", exerciseController.createExercise);
 
 // Get all games
 router.get("/", exerciseController.getExercises);
@@ -15,9 +15,9 @@ router.get("/", exerciseController.getExercises);
 router.get("/:id", exerciseController.getExerciseById);
 
 // Update game
-router.put("/update/:id", exerciseController.updateExercise);
+router.put("/:id", exerciseController.updateExercise);
 
 // Delete game
-router.delete("/delete/:id", exerciseController.deleteExercise);
+router.delete("/:id", exerciseController.deleteExercise);
 
 module.exports = router;

@@ -50,6 +50,7 @@ app.post("/deploy", async (req, res) => {
   );
 });
 
+
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
@@ -75,6 +76,7 @@ app.get("/privacy", async (req, res) => {
   const privacyPolicy = await findOne({ title: "Privacy Policy" });
   res.json(privacyPolicy);
 });
+
 
 const PORT = process.env.PORT;
 
