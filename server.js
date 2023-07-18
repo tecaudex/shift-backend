@@ -24,7 +24,7 @@ initializeDatabase();
 
 const app = express();
 
-init(app);
+// init(app);
 bodyParserMiddleware(app);
 helmetMiddleware(app);
 corsMiddleware(app);
