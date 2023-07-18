@@ -8,11 +8,11 @@ const authenticate = require("../middleware/authMiddleware.cjs");
 router.use(authenticate);
 
 // Generate pre-signed URL for front-end to upload file
-router.get("getUrl", async (req, res) => {
+router.get("/getUrl", async (req, res) => {
   try {
-    const fileType = req.query.fileType;
+    // const fileType = req.query.fileType;
     const fileName = uuid();
-    const url = await generatePresignedUrl(fileName, fileType);
+    const url = await generatePresignedUrl(fileName);
     res.status(200).send({ url });
   } catch (err) {
     console.error(err);
@@ -20,7 +20,7 @@ router.get("getUrl", async (req, res) => {
   }
 });
 
-router.delete("delete", async (req, res) => {
+router.delete("/delete", async (req, res) => {
   try {
     const filename = req.query.filename;
 

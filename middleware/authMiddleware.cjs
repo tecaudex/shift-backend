@@ -5,7 +5,7 @@ const User = require("../models/user.model.cjs");
 
 const authenticate = async (req, res, next) => {
   // Get the token from the request header
-  const token = req.header("Authorization").replace("Bearer ", "");
+  const token = req.header("Authorization");
 
   // Check if token is missing
   if (!token) {
