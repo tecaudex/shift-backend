@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
 // Function for user signup
 exports.signup = async (req, res) => {
   // Extract the required data from the request body
-  const { email, password, accountCreationMethod } = req.body;
+  const { email, password, accountCreationMethod, role } = req.body;
   const file = req.file;
 
   try {
@@ -63,6 +63,7 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
       profilePicture,
       accountCreationMethod,
+      role
     });
 
     // Generate a JWT token
